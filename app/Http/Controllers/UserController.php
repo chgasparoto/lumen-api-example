@@ -4,10 +4,25 @@ namespace App\Http\Controllers;
 
 use App\Message;
 use App\User;
+use App\Http\ApiHelper;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
+    protected $rules;
+
+    public function __construct()
+    {
+        $this->rules = [
+          'message' => 'required|string|max:140',
+          'user_id' => [
+            'required',
+            'integer',
+            Rule::exists('users', 'id')
+          ]
+        ];
+    }
 
     /**
      * Shows all users.
@@ -16,17 +31,21 @@ class UserController extends Controller
     {
         $users = User::all();
 
-        return response()->json($users);
+        return ApiHelper::toJson($users);
     }
 
     /**
      * Shows a given user.
      */
-    public function show($userId)
+    public function show($id)
     {
-        $user = User::find($userId);
+        $user = User::find($id);
 
-        return response()->json($user);
+        if ( ! $user) {
+            return ApiHelper::toError('User not found');
+        }
+
+        return ApiHelper::toJson($user);
     }
 
     /**
@@ -34,22 +53,57 @@ class UserController extends Controller
      */
     public function createMessage(Request $request)
     {
-        $message = Message::create([
-            'user_id' => $request->input('user_id'),
-            'message' => $request->input('message')
-        ]);
+        $validator = \Validator::make($request->input(), $this->rules);
 
-        return response()->json($message);
+        if ($validator->fails()) {
+            return ApiHelper::toError($validator->messages());
+        }
+
+        $message = Message::create($request->all());
+
+        return ApiHelper::toJson($message, 'Message created');
+    }
+
+    /**
+     * Updates a given message
+     */
+    public function updateMessage(Request $request, $id, $message_id)
+    {
+        $validator = \Validator::make($request->input(), $this->rules);
+
+        if ($validator->fails()) {
+            return ApiHelper::toError($validator->messages());
+        }
+
+        $message = Message::find($message_id);
+
+        if ( ! $message) {
+            return ApiHelper::toError('Message not found for this user');
+        }
+
+        if ($message->user_id != $request->input('user_id')) {
+            return ApiHelper::toError('You do not have permission to edit this message', 'error', 403);
+        }
+
+        $message->message = $request->input('message');
+        $message->save();
+
+        return ApiHelper::toJson($message, 'Message updated');
+
     }
 
     /**
      * Gets the user messages.
      */
-    public function userMessages($userId)
+    public function userMessages($id)
     {
-        $message = Message::all()->where('user_id', $userId);
+        $messages = Message::all()->where('user_id', $id);
 
-        return response()->json($message);
+        if ( ! $messages) {
+            return ApiHelper::toError('Message not found for this user');
+        }
+
+        return ApiHelper::toJson($messages);
     }
 
 }

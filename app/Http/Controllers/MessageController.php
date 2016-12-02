@@ -3,41 +3,49 @@
 namespace App\Http\Controllers;
 
 use App\Message;
+use App\Http\ApiHelper;
 
 class MessageController extends Controller
 {
 
+    /**
+     * Lists all messages.
+     */
     public function index()
     {
         $messages = Message::with('user')->get();
 
-        return response()->json($messages);
+        return ApiHelper::toJson($messages);
     }
 
+    /**
+     * Lists a given message.
+     */
     public function show($id)
     {
         $message = Message::with('user')->where('id', $id)->first();
 
-        return response()->json($message);
-    }
-    
-    public function update(Request $request, $id)
-    {
-        $message = Message::find($id);
+        if ( ! $message) {
+            return ApiHelper::toError('Message not found');
+        }
 
-        $message->message = $request->input('message');
-        $message->save();
-
-        return response()->json($message);
+        return ApiHelper::toJson($message);
     }
-    
+
+    /**
+     * Deletes a given message.
+     */
     public function delete($id)
     {
         $message = Message::find($id);
 
+        if ( ! $message) {
+            return ApiHelper::toError('Message not found');
+        }
+
         $message->delete();
 
-        return response()->json($message);
+        return ApiHelper::toSuccess('Message deleted');
     }
 
 }

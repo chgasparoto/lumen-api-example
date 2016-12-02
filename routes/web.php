@@ -19,13 +19,13 @@ $app->group(['prefix' => 'api/v1'], function($app) {
 
     /** User endpoints */
     $app->get('users', 'UserController@index');
-    $app->get('users/{username}', 'UserController@show');
+    $app->get('users/{id}', 'UserController@show');
     $app->get('users/{id}/messages', 'UserController@userMessages');
     $app->post('users/{id}/messages', 'UserController@createMessage');
+    $app->put('users/{id}/messages/{message_id}', 'UserController@updateMessage');
 
     /** Message endpoints */
     $app->get('messages', 'MessageController@index');
     $app->get('messages/{id}', 'MessageController@show');
-    $app->put('messages/{id}', 'MessageController@update');
     $app->delete('messages/{id}', 'MessageController@delete');
 });
